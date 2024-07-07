@@ -2,6 +2,7 @@ import os
 import asyncio
 import discord
 from discord.ext import commands
+from discord import app_commands
 from dotenv import load_dotenv
 from discord.ui import Button, View
 import aiohttp
@@ -248,6 +249,64 @@ async def suggestion(interaction: discord.Interaction):
     except Exception as e:
         await interaction.followup.send(f"發生錯誤：{e}", ephemeral=True)
 
+# 投票推播公告__________________________________________________________________________________
+class ElectionView(discord.ui.View):
+    def __init__(self, candidates):
+        super().__init__()
+        for candidate in candidates:
+            button = discord.ui.Button(
+                label=candidate,
+                style=discord.ButtonStyle.blurple,
+                disabled=True,
+                custom_id=candidate
+            )
+            # button.callback = self.button_callback
+            self.add_item(button)
+        
+        button4 = discord.ui.Button(
+            label="政見對決",
+            style=discord.ButtonStyle.link,
+            url=f"http://192.168.65.232:4200/",
+            row=2
+        )
+        button5 = discord.ui.Button(
+            label="候選人政見",
+            style=discord.ButtonStyle.link,
+            url=f"http://192.168.65.232:4201/",
+            row=2
+        )
+
+        self.add_item(discord.ui.Button(
+            label="\u2B07 還沒想好嗎? 做個測驗吧!",
+            style=discord.ButtonStyle.grey,
+            disabled=True,
+            row=1
+        ))
+        self.add_item(button4)
+        self.add_item(button5)
+
+@bot.tree.command(name="start_election", description="開始學生會長選舉")
+@app_commands.describe(
+    num_candidates="候選人人數",
+    candidate1="候選人1",
+    candidate2="候選人2",
+    candidate3="候選人3",
+    candidate4="候選人4",
+    candidate5="候選人5"
+)
+async def start_election(interaction: discord.Interaction, num_candidates: int, candidate1: str, candidate2: str = None, candidate3: str = None, candidate4: str = None, candidate5: str = None):
+    try:
+        candidates = [candidate for candidate in [candidate1, candidate2, candidate3, candidate4, candidate5] if candidate is not None]
+        
+        if num_candidates <= 0 or len(candidates) != num_candidates:
+            await interaction.response.send_message("請確保輸入正確的候選人人數和名稱！", ephemeral=True)
+            return
+
+        view = ElectionView(candidates)
+        await interaction.response.send_message("今天開始學生會選舉周(5/31-6/4), 請同學記得投票！\n可輸入『/vote』開啟投票功能", view=view)
+
+    except Exception as e:
+        await interaction.response.send_message(f"出現錯誤：{e}", ephemeral=True)
 
 
 bot.run(DISCORD_TOKEN)
